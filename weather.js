@@ -67,15 +67,15 @@ export function initWeather({now=Date.now,enabled=()=>false,notify=()=>{}}={}){
   }
  }
  async function refresh(force=false){
-  if(busy||(!force&&now()-lastTry<REFRESH))return;
+  if(busy||(!force&&now()-lastTry<(failed?60000:REFRESH)))return;
   busy=true;lastTry=now();render();
-  try{const response=await fetch(ENDPOINT,{signal:AbortSignal.timeout(12000),cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});if(!response.ok)throw new Error('Weather unavailable');const result=await response.json();weatherView(result,now());data=result;fetchedAt=now();failed=false;save(CACHE,{data,fetchedAt});}
+  try{const response=await fetch(ENDPOINT,{signal:AbortSignal.timeout(20000),cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});if(!response.ok)throw new Error('Weather unavailable');const result=await response.json();weatherView(result,now());data=result;fetchedAt=now();failed=false;save(CACHE,{data,fetchedAt});}
   catch{failed=true;}finally{busy=false;render();reminders();}
  }
  $('weather-refresh').onclick=()=>refresh(true);
- function check(){if(document.hidden)return;render();reminders();if(!busy&&now()-lastTry>=REFRESH&&(!fetchedAt||now()-fetchedAt>=REFRESH))refresh();}
+ function check(){if(document.hidden)return;render();reminders();if(!busy&&now()-lastTry>=(failed?60000:REFRESH)&&(!fetchedAt||now()-fetchedAt>=REFRESH))refresh();}
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});
- window.addEventListener('online',()=>{if(!document.hidden)refresh();});
+ window.addEventListener('online',()=>{if(!document.hidden)refresh(true);});
  render();if(!data||now()-fetchedAt>=REFRESH)refresh();
  return {check};
 }
